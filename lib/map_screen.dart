@@ -17,8 +17,6 @@ class _MapScreenState extends State<MapScreen> {
   final List<MapObject> _mapObjects = [];
   final List<MapMarker> _markers = [];
 
-  double _currentZoom = 10.0; // Начальный зум
-
   @override
   void initState() {
     super.initState();
@@ -26,22 +24,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadMarkers() async {
+    await MarkerStorage.init();
     final markers = await MarkerStorage.getMarkers();
     setState(() {
-      _markers.clear();
-      _markers.addAll(markers);
-      _updateMapObjects(_currentZoom);
+      _markers
+        ..clear()
+        ..addAll(markers);
+      _updateMapObjects();
     });
   }
 
-  void _updateMapObjects(double zoom) {
+  void _updateMapObjects() {
     _mapObjects.clear();
-
-    // Масштаб иконки, ограниченный минимальным и максимальным значением
-    double scale = (zoom / 15).clamp(0.1, 1.0);
-
-    for (final marker in _markers) {
-      _mapObjects.add(marker.toPlacemark(scale));
+    for (final m in _markers) {
+      _mapObjects.add(m.toPlacemark());
     }
     setState(() {});
   }
@@ -51,16 +47,43 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       builder: (context) => AddMarkerDialog(
         point: point,
-        onSave: (title, description) async {
+        onSave: (title, description, scale, color, type) async {
           final newMarker = MapMarker(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             title: title,
             description: description,
             latitude: point.latitude,
             longitude: point.longitude,
+            scale: scale,
+            titleColorValue: color.value,
+            markerType: type,
             createdAt: DateTime.now().millisecondsSinceEpoch,
           );
           await MarkerStorage.saveMarker(newMarker);
+          await _loadMarkers();
+        },
+      ),
+    );
+  }
+
+  void _editMarker(MapMarker marker) {
+    showDialog(
+      context: context,
+      builder: (context) => AddMarkerDialog(
+        point: Point(latitude: marker.latitude, longitude: marker.longitude),
+        initialTitle: marker.title,
+        initialDescription: marker.description,
+        initialScale: marker.scale,
+        initialColor: marker.titleColor,
+        initialType: marker.markerType,
+        onSave: (title, description, scale, color, type) async {
+          marker
+            ..title = title
+            ..description = description
+            ..scale = scale
+            ..titleColorValue = color.value
+            ..markerType = type;
+          await MarkerStorage.updateMarker(marker);
           await _loadMarkers();
         },
       ),
@@ -73,14 +96,12 @@ class _MapScreenState extends State<MapScreen> {
       builder: (context) => MarkersListBottomSheet(
         markers: _markers,
         onMarkerTap: (marker) {
-          _mapController?.moveCamera(
-            CameraUpdate.newCameraPosition(
-              CameraPosition(
-                target: Point(latitude: marker.latitude, longitude: marker.longitude),
-                zoom: 15,
-              ),
+          _mapController?.moveCamera(CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: Point(latitude: marker.latitude, longitude: marker.longitude),
+              zoom: 15,
             ),
-          );
+          ));
           Navigator.pop(context);
         },
         onDeleteMarker: (marker) async {
@@ -88,6 +109,7 @@ class _MapScreenState extends State<MapScreen> {
           await _loadMarkers();
           if (context.mounted) Navigator.pop(context);
         },
+        onEditMarker: _editMarker,
       ),
     );
   }
@@ -99,41 +121,21 @@ class _MapScreenState extends State<MapScreen> {
         title: const Text('MapNote'),
         backgroundColor: Colors.red,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.list),
-            onPressed: _showMarkersList,
-            tooltip: 'Список меток',
-          ),
+          IconButton(icon: const Icon(Icons.list), onPressed: _showMarkersList),
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              _mapController?.getCameraPosition().then((cameraPosition) {
-                _addMarker(cameraPosition.target);
-              });
+            onPressed: () async {
+              final pos = await _mapController?.getCameraPosition();
+              if (pos != null) _addMarker(pos.target);
             },
-            tooltip: 'Добавить метку в центр',
           ),
         ],
       ),
       body: YandexMap(
-        onMapCreated: (controller) {
-          _mapController = controller;
-        },
-        onCameraPositionChanged: (CameraPosition cameraPosition, CameraUpdateReason reason, bool finished) {
-          if (finished) {
-            _currentZoom = cameraPosition.zoom / 4;
-            _updateMapObjects(_currentZoom);
-          }
-        },
-        onMapTap: _addMarker,
+        onMapCreated: (controller) => _mapController = controller,
         mapObjects: _mapObjects,
+        onMapTap: _addMarker,
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _mapController?.dispose();
-    super.dispose();
   }
 }

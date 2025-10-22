@@ -22,14 +22,17 @@ class MapMarkerAdapter extends TypeAdapter<MapMarker> {
       description: fields[2] as String,
       latitude: fields[3] as double,
       longitude: fields[4] as double,
-      createdAt: fields[5] as int,
+      scale: fields[5] as double,
+      markerType: fields[7] as String,
+      titleColorValue: fields[6] as int,
+      createdAt: fields[8] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, MapMarker obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,6 +44,12 @@ class MapMarkerAdapter extends TypeAdapter<MapMarker> {
       ..writeByte(4)
       ..write(obj.longitude)
       ..writeByte(5)
+      ..write(obj.scale)
+      ..writeByte(6)
+      ..write(obj.titleColorValue)
+      ..writeByte(7)
+      ..write(obj.markerType)
+      ..writeByte(8)
       ..write(obj.createdAt);
   }
 

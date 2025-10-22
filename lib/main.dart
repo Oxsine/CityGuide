@@ -1,31 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'map_marker.dart';
 import 'map_screen.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final dir = await getApplicationDocumentsDirectory();
-  await Hive.initFlutter(dir.path);
+  await Hive.initFlutter();
   Hive.registerAdapter(MapMarkerAdapter());
-  await Hive.openBox<MapMarker>('markers');
-
-  runApp(const MyApp());
+  runApp(const MapNoteApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MapNoteApp extends StatelessWidget {
+  const MapNoteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Yandex Maps Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MapScreen(),
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: MapScreen(),
     );
   }
 }

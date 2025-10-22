@@ -3,70 +3,38 @@ import '../map_marker.dart';
 
 class MarkersListBottomSheet extends StatelessWidget {
   final List<MapMarker> markers;
-  final Function(MapMarker) onMarkerTap;
-  final Function(MapMarker) onDeleteMarker;
+  final void Function(MapMarker marker) onMarkerTap;
+  final void Function(MapMarker marker) onEditMarker;
+  final void Function(MapMarker marker) onDeleteMarker;
 
   const MarkersListBottomSheet({
     super.key,
     required this.markers,
     required this.onMarkerTap,
+    required this.onEditMarker,
     required this.onDeleteMarker,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      height: MediaQuery.of(context).size.height * 0.6,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Метки (${markers.length})',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+    return ListView(
+      children: markers
+          .map(
+            (m) => ListTile(
+              title: Text(m.title, style: TextStyle(color: m.titleColor)),
+              subtitle: Text('${m.description}\n${m.markerType}'),
+              isThreeLine: true,
+              onTap: () => onMarkerTap(m),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(icon: const Icon(Icons.edit), onPressed: () => onEditMarker(m)),
+                  IconButton(icon: const Icon(Icons.delete), onPressed: () => onDeleteMarker(m)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: markers.isEmpty
-                ? const Center(
-                    child: Text('Нет сохраненных меток'),
-                  )
-                : ListView.builder(
-                    itemCount: markers.length,
-                    itemBuilder: (context, index) {
-                      final marker = markers[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.location_on, color: Colors.red),
-                          title: Text(marker.title.isNotEmpty ? marker.title : 'Без названия'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (marker.description.isNotEmpty)
-                                Text(marker.description),
-                              Text(
-                                '${marker.latitude.toStringAsFixed(4)}, ${marker.longitude.toStringAsFixed(4)}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          onTap: () => onMarkerTap(marker),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => onDeleteMarker(marker),
-                            tooltip: 'Удалить метку',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+          )
+          .toList(),
     );
   }
 }

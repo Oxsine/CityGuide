@@ -96,7 +96,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yandex Map Kit Full'),
+        title: const Text('MapNote'),
         backgroundColor: Colors.red,
         actions: [
           IconButton(

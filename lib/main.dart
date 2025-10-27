@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'map_marker.dart';
+import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'map_screen.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  Hive.registerAdapter(MapMarkerAdapter());
-  runApp(const MapNoteApp());
+  
+  // ВАЖНО: Инициализация Yandex MapKit
+  AndroidYandexMap.useAndroidViewSurface = false;
+  
+  runApp(const MyApp());
 }
 
-class MapNoteApp extends StatelessWidget {
-  const MapNoteApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MapScreen(),
+      title: 'MapNote',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const MapScreen(),
     );
   }
 }

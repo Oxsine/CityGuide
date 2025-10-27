@@ -2,8 +2,14 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Добавьте зеркала с правильным синтаксисом Kotlin DSL
         maven {
-            url = uri("https://maven.pkg.jetbrains.space/public/p/space/maven")
+            url = uri("https://maven.aliyun.com/repository/google")
+            isAllowInsecureProtocol = true
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            isAllowInsecureProtocol = true
         }
     }
 }

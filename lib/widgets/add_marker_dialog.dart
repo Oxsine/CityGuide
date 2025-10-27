@@ -3,12 +3,13 @@ import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 class AddMarkerDialog extends StatefulWidget {
   final Point point;
+  final void Function(String title, String description, double scale, Color color, String type) onSave;
+
   final String? initialTitle;
   final String? initialDescription;
   final double? initialScale;
   final Color? initialColor;
   final String? initialType;
-  final void Function(String title, String description, double scale, Color color, String type) onSave;
 
   const AddMarkerDialog({
     super.key,
@@ -29,19 +30,52 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   double _scale = 1.0;
-  Color _titleColor = Colors.black;
-  String _markerType = 'default';
+  Color _color = Colors.black;
+  String _markerType = 'location'; // ✅ Английское название файла
 
-  final List<String> _markerTypes = ['default', 'дом', 'работа', 'магазин', 'другое'];
+  // ✅ Английские названия файлов (без .png)
+  final List<String> _types = [
+    'location',
+    'home',
+    'food',
+    'work',
+    'entertainment',
+    'other',
+    'education',
+  ];
+
+  // ✅ Русские названия для отображения пользователю
+  final Map<String, String> _typeNames = {
+    'location': 'Локация',
+    'home': 'Дом',
+    'food': 'Еда',
+    'work': 'Работа',
+    'entertainment': 'Развлечение',
+    'other': 'Разное',
+    'education': 'Учеба',
+  };
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
-    _descriptionController = TextEditingController(text: widget.initialDescription);
+    _titleController = TextEditingController(text: widget.initialTitle ?? '');
+    _descriptionController = TextEditingController(text: widget.initialDescription ?? '');
     _scale = widget.initialScale ?? 1.0;
-    _titleColor = widget.initialColor ?? Colors.black;
-    _markerType = widget.initialType ?? 'default';
+    _color = widget.initialColor ?? Colors.black;
+    
+    // ✅ Проверяем, что initialType существует в списке
+    if (widget.initialType != null && _types.contains(widget.initialType)) {
+      _markerType = widget.initialType!;
+    } else {
+      _markerType = 'location'; // дефолтное значение
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -50,96 +84,115 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
       title: const Text('Добавить метку'),
       content: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Имя'),
+              decoration: const InputDecoration(labelText: 'Название'),
             ),
             TextField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'Описание'),
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: _markerType,
-              decoration: const InputDecoration(labelText: 'Тип метки'),
-              items: _markerTypes
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (v) => setState(() => _markerType = v!),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
-                const Text('Размер:'),
+                const Text('Масштаб:'),
                 Expanded(
                   child: Slider(
-                    value: _scale,
                     min: 0.5,
                     max: 2.5,
+                    divisions: 4,
+                    label: _scale.toStringAsFixed(1),
+                    value: _scale,
                     onChanged: (v) => setState(() => _scale = v),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
             Row(
               children: [
-                const Text('Цвет названия:'),
-                const SizedBox(width: 10),
+                const Text('Цвет:'),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () async {
-                    final color = await showDialog<Color>(
+                    final newColor = await showDialog<Color>(
                       context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Выбор цвета'),
-                        content: Wrap(
-                          children: [
-                            for (final c in [Colors.black, Colors.red, Colors.blue, Colors.green, Colors.purple])
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context, c),
-                                child: Container(
-                                  margin: const EdgeInsets.all(4),
-                                  width: 30,
-                                  height: 30,
-                                  color: c,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
+                      builder: (_) => _ColorPickerDialog(currentColor: _color),
                     );
-                    if (color != null) setState(() => _titleColor = color);
+                    if (newColor != null) setState(() => _color = newColor);
                   },
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    color: _titleColor,
-                  ),
+                  child: CircleAvatar(backgroundColor: _color),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text('Широта: ${widget.point.latitude.toStringAsFixed(5)}'),
-            Text('Долгота: ${widget.point.longitude.toStringAsFixed(5)}'),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _markerType,
+              decoration: const InputDecoration(labelText: 'Тип метки'),
+              items: _types
+                  .map((t) => DropdownMenuItem(
+                        value: t, // ✅ Английское значение (имя файла)
+                        child: Text(_typeNames[t] ?? t), // ✅ Русское отображение
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _markerType = v ?? 'location'),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         ElevatedButton(
           onPressed: () {
             widget.onSave(
-              _titleController.text,
-              _descriptionController.text,
+              _titleController.text.trim(),
+              _descriptionController.text.trim(),
               _scale,
-              _titleColor,
-              _markerType,
+              _color,
+              _markerType, // ✅ Передаем английское название
             );
             Navigator.pop(context);
           },
           child: const Text('Сохранить'),
         ),
       ],
+    );
+  }
+}
+
+class _ColorPickerDialog extends StatelessWidget {
+  final Color currentColor;
+  const _ColorPickerDialog({required this.currentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Color> colors = [
+      Colors.black,
+      Colors.red,
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+    ];
+    return AlertDialog(
+      title: const Text('Выбери цвет'),
+      content: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: colors
+            .map(
+              (c) => GestureDetector(
+                onTap: () => Navigator.pop(context, c),
+                child: CircleAvatar(backgroundColor: c, radius: 18),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }

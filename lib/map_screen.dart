@@ -4,6 +4,7 @@ import 'map_marker.dart';
 import 'storage.dart';
 import 'widgets/add_marker_dialog.dart';
 import 'widgets/markers_list_sheet.dart';
+import 'settings_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -37,113 +38,126 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _showAddMarkerDialog(Point point) async {
     print('Нажатие на карту: lat=${point.latitude}, lon=${point.longitude}');
-    
+
     await showDialog(
       context: context,
-      builder: (context) => AddMarkerDialog(
-        point: point,
-        onSave: (title, description, scale, color, type) async {
-          final newMarker = MapMarker(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: title.isEmpty ? 'Новая метка' : title,
-            description: description,
-            latitude: point.latitude,
-            longitude: point.longitude,
-            scale: scale,
-            titleColorValue: color.value,
-            markerType: type,
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-          );
+      builder:
+          (context) => AddMarkerDialog(
+            point: point,
+            onSave: (title, description, scale, color, type) async {
+              final newMarker = MapMarker(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                title: title.isEmpty ? 'Новая метка' : title,
+                description: description,
+                latitude: point.latitude,
+                longitude: point.longitude,
+                scale: scale,
+                titleColorValue: color.value,
+                markerType: type,
+                createdAt: DateTime.now().millisecondsSinceEpoch,
+              );
 
-          print('Создана метка: ${newMarker.title}');
-          print('Тип иконки: ${newMarker.markerType}');
-          
-          markers.add(newMarker);
-          await _storage.saveMarkers(markers);
-          
-          print('Всего меток: ${markers.length}');
-          
-          setState(() {});
+              print('Создана метка: ${newMarker.title}');
+              print('Тип иконки: ${newMarker.markerType}');
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Метка "${newMarker.title}" добавлена'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-      ),
+              markers.add(newMarker);
+              await _storage.saveMarkers(markers);
+
+              print('Всего меток: ${markers.length}');
+
+              setState(() {});
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Метка "${newMarker.title}" добавлена'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
     );
   }
 
   Future<void> _editMarker(MapMarker marker) async {
     await showDialog(
       context: context,
-      builder: (context) => AddMarkerDialog(
-        point: Point(latitude: marker.latitude, longitude: marker.longitude),
-        initialTitle: marker.title,
-        initialDescription: marker.description,
-        initialScale: marker.scale,
-        initialColor: marker.titleColor,
-        initialType: marker.markerType,
-        onSave: (title, description, scale, color, type) async {
-          // Обновляем существующую метку
-          final index = markers.indexWhere((m) => m.id == marker.id);
-          if (index != -1) {
-            markers[index] = MapMarker(
-              id: marker.id,
-              title: title.isEmpty ? 'Метка' : title,
-              description: description,
+      builder:
+          (context) => AddMarkerDialog(
+            point: Point(
               latitude: marker.latitude,
               longitude: marker.longitude,
-              scale: scale,
-              titleColorValue: color.value,
-              markerType: type,
-              createdAt: marker.createdAt,
-            );
+            ),
+            initialTitle: marker.title,
+            initialDescription: marker.description,
+            initialScale: marker.scale,
+            initialColor: marker.titleColor,
+            initialType: marker.markerType,
+            onSave: (title, description, scale, color, type) async {
+              // Обновляем существующую метку
+              final index = markers.indexWhere((m) => m.id == marker.id);
+              if (index != -1) {
+                markers[index] = MapMarker(
+                  id: marker.id,
+                  title: title.isEmpty ? 'Метка' : title,
+                  description: description,
+                  latitude: marker.latitude,
+                  longitude: marker.longitude,
+                  scale: scale,
+                  titleColorValue: color.value,
+                  markerType: type,
+                  createdAt: marker.createdAt,
+                );
 
-            await _storage.saveMarkers(markers);
-            setState(() {});
+                await _storage.saveMarkers(markers);
+                setState(() {});
 
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Метка обновлена'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            }
-          }
-        },
-      ),
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Метка обновлена'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
     );
   }
 
-  Future<void> _deleteMarker(String markerId, {bool showConfirmation = true}) async {
+  Future<void> _deleteMarker(
+    String markerId, {
+    bool showConfirmation = true,
+  }) async {
     bool confirmed = true;
-    
+
     // Подтверждение удаления
     if (showConfirmation) {
-      confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Удалить метку?'),
-          content: const Text('Это действие нельзя отменить'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Удалить'),
-            ),
-          ],
-        ),
-      ) ?? false;
+      confirmed =
+          await showDialog<bool>(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Удалить метку?'),
+                  content: const Text('Это действие нельзя отменить'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Отмена'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text('Удалить'),
+                    ),
+                  ],
+                ),
+          ) ??
+          false;
     }
 
     if (confirmed) {
@@ -163,90 +177,92 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showMarkerDetails(MapMarker marker) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    marker.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: marker.titleColor,
-                        ),
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor, // ✅ Цвет фона из темы
+    builder: (context) => Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  marker.title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: marker.titleColor,
+                      ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[800] // ✅ Темный фон для темной темы
+                      : Colors.grey[200], // ✅ Светлый фон для светлой темы
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  marker.markerType,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color, // ✅ Цвет текста из темы
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    marker.markerType,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (marker.description.isNotEmpty) ...[
+            Text(
+              marker.description,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
-            if (marker.description.isNotEmpty) ...[
-              Text(
-                marker.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 8),
-            ],
-            Text(
-              'Координаты: ${marker.latitude.toStringAsFixed(6)}, ${marker.longitude.toStringAsFixed(6)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            Text(
-              'Масштаб: ${marker.scale.toStringAsFixed(1)}x',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _deleteMarker(marker.id);
-                  },
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('Удалить', style: TextStyle(color: Colors.red)),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _editMarker(marker);
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Изменить'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Закрыть'),
-                ),
-              ],
-            ),
           ],
-        ),
+          Text(
+            'Координаты: ${marker.latitude.toStringAsFixed(6)}, ${marker.longitude.toStringAsFixed(6)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          Text(
+            'Масштаб: ${marker.scale.toStringAsFixed(1)}x',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _deleteMarker(marker.id);
+                },
+                icon: const Icon(Icons.delete, color: Colors.red),
+                label: const Text('Удалить', style: TextStyle(color: Colors.red)),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _editMarker(marker);
+                },
+                icon: const Icon(Icons.edit),
+                label: const Text('Изменить'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Закрыть'),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showMarkersList() {
     showModalBottomSheet(
@@ -259,9 +275,9 @@ class _MapScreenState extends State<MapScreen> {
           maxChildSize: 0.95,
           expand: false,
           builder: (context, scrollController) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor, // ✅ Используем цвет темы
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [
@@ -270,7 +286,9 @@ class _MapScreenState extends State<MapScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[300]!),
+                      bottom: BorderSide(
+                        color: Theme.of(context).dividerColor, // ✅ Цвет разделителя из темы
+                      ),
                     ),
                   ),
                   child: Row(
@@ -278,10 +296,7 @@ class _MapScreenState extends State<MapScreen> {
                     children: [
                       Text(
                         'Мои метки (${markers.length})',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall, // ✅ Стиль из темы
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -347,6 +362,8 @@ class _MapScreenState extends State<MapScreen> {
                       ) ?? false;
 
                       if (confirmed) {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        
                         markers.removeWhere((m) => m.id == marker.id);
                         await _storage.saveMarkers(markers);
                         
@@ -354,14 +371,12 @@ class _MapScreenState extends State<MapScreen> {
                         setState(() {});
                         setModalState(() {});
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Метка удалена'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Метка удалена'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       }
                     },
                   ),
@@ -374,19 +389,102 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // ✅ Поворот карты на север (азимут 0)
+  Future<void> _rotateToNorth() async {
+    if (_mapController != null) {
+      // Получаем текущую позицию камеры
+      final cameraPosition = await _mapController!.getCameraPosition();
+
+      // Поворачиваем на север (azimuth = 0)
+      await _mapController!.moveCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: cameraPosition.target,
+            zoom: cameraPosition.zoom,
+            azimuth: 0, // ✅ Север
+            tilt: 0, // ✅ Убираем наклон
+          ),
+        ),
+        animation: const MapAnimation(
+          type: MapAnimationType.smooth,
+          duration: 0.5,
+        ),
+      );
+
+      print('Карта повернута на север');
+    }
+  }
+
+  // ✅ Переместиться к местоположению пользователя
+  Future<void> _moveToUserLocation() async {
+    if (_mapController != null) {
+      try {
+        // Получаем текущее местоположение (требует разрешений)
+        // Пока используем Москву как пример
+        // TODO: Добавьте плагин geolocator для реального местоположения
+
+        await _mapController!.moveCamera(
+          CameraUpdate.newCameraPosition(
+            const CameraPosition(
+              target: _moscowCenter, // ✅ Замените на реальное местоположение
+              zoom: 15.0,
+            ),
+          ),
+          animation: const MapAnimation(
+            type: MapAnimationType.smooth,
+            duration: 1.0,
+          ),
+        );
+
+        print('Перемещение к местоположению пользователя');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Функция местоположения в разработке'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Ошибка получения местоположения: $e');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Не удалось получить местоположение'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('MapNote'),
         actions: [
-          if (markers.isNotEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Меток: ${markers.length}'),
-              ),
-            ),
+          // if (markers.isNotEmpty)
+          //   Center(
+          //     child: Padding(
+          //       padding: const EdgeInsets.symmetric(horizontal: 16),
+          //       child: Text('Меток: ${markers.length}'),
+          //     ),
+          //   ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Настройки',
+          ),
+
           IconButton(
             icon: const Icon(Icons.list),
             onPressed: _showMarkersList,
@@ -400,10 +498,7 @@ class _MapScreenState extends State<MapScreen> {
 
           await controller.moveCamera(
             CameraUpdate.newCameraPosition(
-              const CameraPosition(
-                target: _moscowCenter,
-                zoom: 12.0,
-              ),
+              const CameraPosition(target: _moscowCenter, zoom: 12.0),
             ),
             animation: const MapAnimation(
               type: MapAnimationType.smooth,
@@ -416,7 +511,6 @@ class _MapScreenState extends State<MapScreen> {
         },
         onMapTap: (point) => _showAddMarkerDialog(point),
         mapObjects: [
-          // ✅ Иконки и текст меток С ОТЛАДКОЙ
           ...markers.expand((marker) {
             print('=== ОТЛАДКА МЕТКИ ===');
             print('ID: ${marker.id}');
@@ -426,9 +520,8 @@ class _MapScreenState extends State<MapScreen> {
             print('Scale: ${marker.scale}');
             print('Coordinates: ${marker.latitude}, ${marker.longitude}');
             print('==================');
-            
+
             return [
-              // Иконка метки
               PlacemarkMapObject(
                 mapId: MapObjectId(marker.id),
                 point: Point(
@@ -451,7 +544,6 @@ class _MapScreenState extends State<MapScreen> {
                   _showMarkerDetails(marker);
                 },
               ),
-              // Текстовая подпись под меткой
               PlacemarkMapObject(
                 mapId: MapObjectId('text_${marker.id}'),
                 point: Point(
@@ -477,21 +569,25 @@ class _MapScreenState extends State<MapScreen> {
           }).toList(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final path = await _storage.getFilePath();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('JSON: $path\nМеток: ${markers.length}'),
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-          print('JSON file path: $path');
-          print('Markers count: ${markers.length}');
-        },
-        child: const Icon(Icons.info),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Кнопка ориентации на север
+          FloatingActionButton(
+            heroTag: 'compass',
+            onPressed: _rotateToNorth,
+            tooltip: 'Ориентация на север',
+            child: const Icon(Icons.navigation),
+          ),
+          const SizedBox(height: 16),
+          // Кнопка местоположения
+          FloatingActionButton(
+            heroTag: 'location',
+            onPressed: _moveToUserLocation,
+            tooltip: 'Моё местоположение',
+            child: const Icon(Icons.my_location),
+          ),
+        ],
       ),
     );
   }

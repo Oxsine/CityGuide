@@ -29,7 +29,7 @@ class AddMarkerDialog extends StatefulWidget {
 class _AddMarkerDialogState extends State<AddMarkerDialog> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  double _scale = 1.0;
+  double _scale = 0.5;
   Color _color = Colors.black;
   String _markerType = 'location'; // ✅ Английское название файла
 
@@ -60,7 +60,7 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
     super.initState();
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _descriptionController = TextEditingController(text: widget.initialDescription ?? '');
-    _scale = widget.initialScale ?? 1.0;
+    _scale = widget.initialScale ?? 0.5;
     _color = widget.initialColor ?? Colors.black;
     
     // ✅ Проверяем, что initialType существует в списке
@@ -100,9 +100,9 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                 const Text('Масштаб:'),
                 Expanded(
                   child: Slider(
-                    min: 0.5,
-                    max: 2.5,
-                    divisions: 4,
+                    min: 0.1,
+                    max: 2.0,
+                    divisions: 19,
                     label: _scale.toStringAsFixed(1),
                     value: _scale,
                     onChanged: (v) => setState(() => _scale = v),

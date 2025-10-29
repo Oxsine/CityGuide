@@ -13,7 +13,6 @@ class MapMarker {
   String markerType;
   int createdAt;
 
-  // Геттер для использования в UI: m.titleColor
   Color get titleColor => Color(titleColorValue);
 
   MapMarker({
@@ -28,9 +27,7 @@ class MapMarker {
     required this.createdAt,
   });
 
-  // Из JSON (включая значения по умолчанию при отсутствии полей)
   factory MapMarker.fromJson(Map<String, dynamic> json) {
-    // ✅ Список допустимых типов иконок (английские названия файлов)
     const validTypes = [
       'location',
       'home',
@@ -43,7 +40,6 @@ class MapMarker {
     
     String markerType = json['markerType']?.toString() ?? 'location';
     
-    // ✅ Если тип не существует в списке, заменяем на дефолтный
     if (!validTypes.contains(markerType)) {
       print('⚠️ Неизвестный тип метки: $markerType, используем "location"');
       markerType = 'location';
@@ -55,7 +51,7 @@ class MapMarker {
       description: json['description']?.toString() ?? '',
       latitude: (json['latitude'] is num) ? (json['latitude'] as num).toDouble() : 0.0,
       longitude: (json['longitude'] is num) ? (json['longitude'] as num).toDouble() : 0.0,
-      scale: (json['scale'] is num) ? (json['scale'] as num).toDouble() : 1.0,
+      scale: (json['scale'] is num) ? (json['scale'] as num).toDouble() : 0.5,
       titleColorValue: json['titleColorValue'] is int
           ? json['titleColorValue'] as int
           : (json['titleColorValue'] is String
@@ -85,7 +81,6 @@ class MapMarker {
   @override
   String toString() => jsonEncode(toJson());
 
-  // Конвертация в PlacemarkMapObject для отображения на карте
   PlacemarkMapObject toPlacemark() {
     return PlacemarkMapObject(
       mapId: MapObjectId(id),
@@ -94,10 +89,10 @@ class MapMarker {
         PlacemarkIconStyle(
           image: BitmapDescriptor.fromAssetImage('assets/icons/$markerType.png'),
           scale: scale,
-          anchor: const Offset(0.5, 0.5), // ✅ Центрирование иконки
+          anchor: const Offset(0.5, 0.5),
         ),
       ),
-      consumeTapEvents: true, // ✅ Предотвращает всплытие события
+      consumeTapEvents: true, 
     );
   }
 }

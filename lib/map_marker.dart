@@ -12,6 +12,7 @@ class MapMarker {
   int titleColorValue;
   String markerType;
   int createdAt;
+  List<String> photos;
 
   Color get titleColor => Color(titleColorValue);
 
@@ -25,6 +26,7 @@ class MapMarker {
     required this.titleColorValue,
     required this.markerType,
     required this.createdAt,
+    this.photos = const [],
   });
 
   factory MapMarker.fromJson(Map<String, dynamic> json) {
@@ -41,8 +43,12 @@ class MapMarker {
     String markerType = json['markerType']?.toString() ?? 'location';
     
     if (!validTypes.contains(markerType)) {
-      print('⚠️ Неизвестный тип метки: $markerType, используем "location"');
       markerType = 'location';
+    }
+
+    List<String> photos = [];
+    if (json['photos'] != null && json['photos'] is List) {
+      photos = (json['photos'] as List).map((e) => e.toString()).toList();
     }
     
     return MapMarker(
@@ -61,6 +67,7 @@ class MapMarker {
       createdAt: json['createdAt'] is int
           ? json['createdAt'] as int
           : DateTime.now().millisecondsSinceEpoch,
+      photos: photos,
     );
   }
 
@@ -75,6 +82,7 @@ class MapMarker {
       'titleColorValue': titleColorValue,
       'markerType': markerType,
       'createdAt': createdAt,
+      'photos': photos,
     };
   }
 
@@ -92,7 +100,7 @@ class MapMarker {
           anchor: const Offset(0.5, 0.5),
         ),
       ),
-      consumeTapEvents: true, 
+      consumeTapEvents: true,
     );
   }
 }

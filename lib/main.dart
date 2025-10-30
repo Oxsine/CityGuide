@@ -9,7 +9,6 @@ void main() async {
   
   // Инициализация Yandex MapKit
   AndroidYandexMap.useAndroidViewSurface = false;
-  
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),

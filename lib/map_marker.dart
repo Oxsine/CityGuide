@@ -13,8 +13,12 @@ class MapMarker {
   String markerType;
   int createdAt;
   List<String> photos;
+  String? customIconPath; // Добавлено новое поле
 
   Color get titleColor => Color(titleColorValue);
+  
+  // Проверка, используется ли кастомная иконка
+  bool get hasCustomIcon => customIconPath != null && customIconPath!.isNotEmpty;
 
   MapMarker({
     required this.id,
@@ -27,6 +31,7 @@ class MapMarker {
     required this.markerType,
     required this.createdAt,
     this.photos = const [],
+    this.customIconPath, // Добавлен в конструктор
   });
 
   factory MapMarker.fromJson(Map<String, dynamic> json) {
@@ -68,6 +73,7 @@ class MapMarker {
           ? json['createdAt'] as int
           : DateTime.now().millisecondsSinceEpoch,
       photos: photos,
+      customIconPath: json['customIconPath']?.toString(), // Загрузка из JSON
     );
   }
 
@@ -83,6 +89,7 @@ class MapMarker {
       'markerType': markerType,
       'createdAt': createdAt,
       'photos': photos,
+      if (customIconPath != null) 'customIconPath': customIconPath, // Сохранение в JSON
     };
   }
 

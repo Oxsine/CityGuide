@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'map_marker.dart';
 import 'storage.dart';
+import 'icon_processor.dart';
 import 'widgets/add_marker_dialog.dart';
 import 'widgets/markers_list_sheet.dart';
 import 'widgets/marker_details_sheet.dart';
 import 'widgets/map_controls.dart';
 import 'settings_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -19,6 +22,7 @@ class _MapScreenState extends State<MapScreen> {
   final Storage _storage = Storage();
   List<MapMarker> markers = [];
   YandexMapController? _mapController;
+  Map<String, BitmapDescriptor> _iconCache = {}; // Кэш иконок
 
   static const Point _moscowCenter = Point(
     latitude: 55.751244,
@@ -33,8 +37,45 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _loadMarkers() async {
     markers = await _storage.loadMarkers();
+    // Предзагружаем все иконки
+    await _preloadIcons();
     setState(() {});
     print('Загружено ${markers.length} меток');
+  }
+
+  // Предзагрузка всех иконок в кэш
+  Future<void> _preloadIcons() async {
+    _iconCache.clear();
+    for (var marker in markers) {
+      try {
+        _iconCache[marker.id] = await _getMarkerIcon(marker);
+      } catch (e) {
+        print('Ошибка предзагрузки иконки для ${marker.id}: $e');
+      }
+    }
+  }
+
+  // Создание BitmapDescriptor из файла или из assets
+  Future<BitmapDescriptor> _getMarkerIcon(MapMarker marker) async {
+    if (marker.hasCustomIcon) {
+      try {
+        // Обрабатываем и нормализуем кастомную иконку
+        final processedBytes = await IconProcessor.createStyledIcon(
+          marker.customIconPath!,
+          backgroundColor: Colors.white,
+          addShadow: true,
+          makeCircular: true,
+        );
+        return BitmapDescriptor.fromBytes(processedBytes);
+      } catch (e) {
+        print('Ошибка загрузки кастомной иконки: $e');
+        // Fallback на стандартную иконку
+        return BitmapDescriptor.fromAssetImage('assets/icons/${marker.markerType}.png');
+      }
+    } else {
+      // Стандартная иконка из assets
+      return BitmapDescriptor.fromAssetImage('assets/icons/${marker.markerType}.png');
+    }
   }
 
   // ===== МЕТОДЫ РАБОТЫ С МЕТКАМИ =====
@@ -44,7 +85,7 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       builder: (context) => AddMarkerDialog(
         point: point,
-        onSave: (title, description, scale, color, type, photos) async {
+        onSave: (title, description, scale, color, type, photos, customIconPath) async {
           final scaffoldMessenger = ScaffoldMessenger.of(context);
           
           final newMarker = MapMarker(
@@ -58,10 +99,15 @@ class _MapScreenState extends State<MapScreen> {
             markerType: type,
             createdAt: DateTime.now().millisecondsSinceEpoch,
             photos: photos,
+            customIconPath: customIconPath,
           );
 
           markers.add(newMarker);
           await _storage.saveMarkers(markers);
+          
+          // Загружаем иконку для новой метки
+          _iconCache[newMarker.id] = await _getMarkerIcon(newMarker);
+          
           setState(() {});
 
           scaffoldMessenger.showSnackBar(
@@ -86,7 +132,8 @@ class _MapScreenState extends State<MapScreen> {
         initialColor: marker.titleColor,
         initialType: marker.markerType,
         initialPhotos: marker.photos,
-        onSave: (title, description, scale, color, type, photos) async {
+        initialCustomIconPath: marker.customIconPath,
+        onSave: (title, description, scale, color, type, photos, customIconPath) async {
           final scaffoldMessenger = ScaffoldMessenger.of(context);
           
           final index = markers.indexWhere((m) => m.id == marker.id);
@@ -102,9 +149,14 @@ class _MapScreenState extends State<MapScreen> {
               markerType: type,
               createdAt: marker.createdAt,
               photos: photos,
+              customIconPath: customIconPath,
             );
 
             await _storage.saveMarkers(markers);
+            
+            // Обновляем иконку в кэше
+            _iconCache[marker.id] = await _getMarkerIcon(markers[index]);
+            
             setState(() {});
 
             scaffoldMessenger.showSnackBar(
@@ -143,6 +195,7 @@ class _MapScreenState extends State<MapScreen> {
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       
       markers.removeWhere((m) => m.id == markerId);
+      _iconCache.remove(markerId); // Удаляем из кэша
       await _storage.saveMarkers(markers);
       setState(() {});
 
@@ -269,6 +322,7 @@ class _MapScreenState extends State<MapScreen> {
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
                         
                         markers.removeWhere((m) => m.id == marker.id);
+                        _iconCache.remove(marker.id);
                         await _storage.saveMarkers(markers);
                         
                         setState(() {});
@@ -316,14 +370,92 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _moveToUserLocation() async {
-    if (_mapController != null) {
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
+    if (_mapController == null) return;
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Включите службы геолокации в настройках'),
+              duration: Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Настройки',
+                onPressed: Geolocator.openLocationSettings,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
       
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Разрешение на геолокацию отклонено'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Разрешение на геолокацию отклонено навсегда'),
+              duration: Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Настройки',
+                onPressed: Geolocator.openAppSettings,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 16),
+                Text('Определение местоположения...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
       await _mapController!.moveCamera(
         CameraUpdate.newCameraPosition(
-          const CameraPosition(
-            target: _moscowCenter,
-            zoom: 15.0,
+          CameraPosition(
+            target: Point(
+              latitude: position.latitude,
+              longitude: position.longitude,
+            ),
+            zoom: 16.0,
           ),
         ),
         animation: const MapAnimation(
@@ -332,12 +464,39 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Функция местоположения в разработке'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      print('Местоположение: ${position.latitude}, ${position.longitude}');
+      print('Точность: ${position.accuracy} метров');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Местоположение определено\nТочность: ${position.accuracy.toStringAsFixed(0)}м',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось определить местоположение: превышено время ожидания'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Ошибка геолокации: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -384,45 +543,52 @@ class _MapScreenState extends State<MapScreen> {
         },
         onMapTap: (point) => _showAddMarkerDialog(point),
         mapObjects: [
-          ...markers.expand((marker) => [
-            PlacemarkMapObject(
-              mapId: MapObjectId(marker.id),
-              point: Point(
-                latitude: marker.latitude,
-                longitude: marker.longitude,
-              ),
-              icon: PlacemarkIcon.single(
-                PlacemarkIconStyle(
-                  image: BitmapDescriptor.fromAssetImage(
-                    'assets/icons/${marker.markerType}.png',
+          // Используем кэшированные иконки
+          ...markers.expand((marker) {
+            final icon = _iconCache[marker.id];
+            if (icon == null) {
+              // Если иконка еще не загружена, пропускаем метку
+              return <MapObject>[];
+            }
+            
+            return [
+              PlacemarkMapObject(
+                mapId: MapObjectId(marker.id),
+                point: Point(
+                  latitude: marker.latitude,
+                  longitude: marker.longitude,
+                ),
+                icon: PlacemarkIcon.single(
+                  PlacemarkIconStyle(
+                    image: icon,
+                    scale: marker.scale,
+                    anchor: const Offset(0.5, 0.5),
                   ),
-                  scale: marker.scale,
-                  anchor: const Offset(0.5, 0.5),
                 ),
+                opacity: 1.0,
+                consumeTapEvents: true,
+                onTap: (_, __) => _showMarkerDetails(marker),
               ),
-              opacity: 1.0,
-              consumeTapEvents: true,
-              onTap: (_, __) => _showMarkerDetails(marker),
-            ),
-            PlacemarkMapObject(
-              mapId: MapObjectId('text_${marker.id}'),
-              point: Point(
-                latitude: marker.latitude,
-                longitude: marker.longitude,
-              ),
-              text: PlacemarkText(
-                text: marker.title,
-                style: PlacemarkTextStyle(
-                  size: 10,
-                  color: marker.titleColor,
-                  placement: TextStylePlacement.bottom,
-                  offset: 15,
+              PlacemarkMapObject(
+                mapId: MapObjectId('text_${marker.id}'),
+                point: Point(
+                  latitude: marker.latitude,
+                  longitude: marker.longitude,
                 ),
+                text: PlacemarkText(
+                  text: marker.title,
+                  style: PlacemarkTextStyle(
+                    size: 10,
+                    color: marker.titleColor,
+                    placement: TextStylePlacement.bottom,
+                    offset: 15,
+                  ),
+                ),
+                consumeTapEvents: true,
+                onTap: (_, __) => _showMarkerDetails(marker),
               ),
-              consumeTapEvents: true,
-              onTap: (_, __) => _showMarkerDetails(marker),
-            ),
-          ]).toList(),
+            ];
+          }).toList(),
         ],
       ),
       floatingActionButton: MapControls(
@@ -435,6 +601,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _mapController?.dispose();
+    _iconCache.clear();
     super.dispose();
   }
 }

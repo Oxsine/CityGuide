@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
-import 'package:image_picker/image_picker.dart';
+import 'photo_picker_screen.dart';
 import 'dart:io';
+import '../photo_storage.dart';
+
+final photoStorage = PhotoStorage();
 
 class AddMarkerDialog extends StatefulWidget {
   final Point point;
-  final void Function(String title, String description, double scale, Color color, String type, List<String> photos, String? customIconPath) onSave;
+  final void Function(
+    String title,
+    String description,
+    double scale,
+    Color color,
+    String type,
+    List<String> photos,
+    String? customIconPath,
+  )
+  onSave;
 
   final String? initialTitle;
   final String? initialDescription;
@@ -40,7 +53,7 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   String _markerType = 'location';
   List<String> _photoPaths = [];
   String? _customIconPath;
-  final ImagePicker _picker = ImagePicker();
+  // final ImagePicker _picker = ImagePicker();
 
   final List<String> _types = [
     'location',
@@ -76,12 +89,14 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
-    _descriptionController = TextEditingController(text: widget.initialDescription ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.initialDescription ?? '',
+    );
     _scale = widget.initialScale ?? 0.5;
     _color = widget.initialColor ?? Colors.black;
     _photoPaths = widget.initialPhotos?.toList() ?? [];
     _customIconPath = widget.initialCustomIconPath;
-    
+
     if (widget.initialType != null && _types.contains(widget.initialType)) {
       _markerType = widget.initialType!;
     } else {
@@ -99,18 +114,14 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   /// Выбрать пользовательскую иконку для метки
   Future<void> _pickCustomIcon() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 90,
+      final String? pickedPath = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PhotoPickerScreen()),
       );
-
-      if (image != null) {
+      if (pickedPath != null) {
         setState(() {
-          _customIconPath = image.path;
+          _customIconPath = pickedPath;
         });
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -122,9 +133,9 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка выбора иконки: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка выбора иконки: $e')));
       }
     }
   }
@@ -145,48 +156,46 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   /// Добавить фото из галереи
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+      final String? pickedPath = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PhotoPickerScreen()),
       );
-
-      if (image != null) {
+      if (pickedPath != null) {
+        final String permanentPath = await photoStorage.savePhoto(pickedPath);
         setState(() {
-          _photoPaths.add(image.path);
+          _photoPaths.add(permanentPath);
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка выбора фото: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка выбора фото: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   /// Сделать фото камерой
   Future<void> _takePhoto() async {
     try {
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+      final String? pickedPath = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PhotoPickerScreen()),
       );
-
-      if (photo != null) {
+      if (pickedPath != null) {
+        final String permanentPath = await photoStorage.savePhoto(pickedPath);
         setState(() {
-          _photoPaths.add(photo.path);
+          _photoPaths.add(permanentPath);
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка камеры: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка камеры: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -201,29 +210,31 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   void _viewPhoto(String path) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                child: Image.file(
-                  File(path),
-                  fit: BoxFit.contain,
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    child: Image.file(File(path), fit: BoxFit.contain),
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 40,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
             ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -232,7 +243,9 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
     final hasCustomIcon = _customIconPath != null;
 
     return AlertDialog(
-      title: Text(widget.initialTitle != null ? 'Редактировать метку' : 'Добавить метку'),
+      title: Text(
+        widget.initialTitle != null ? 'Редактировать метку' : 'Добавить метку',
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -267,19 +280,14 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               children: [
                 const Text(
                   '🎨 Иконка метки',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 if (hasCustomIcon)
                   TextButton.icon(
                     onPressed: _removeCustomIcon,
                     icon: const Icon(Icons.clear, size: 18),
                     label: const Text('Сбросить'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
               ],
             ),
@@ -290,9 +298,10 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey[800]
-                    : Colors.grey[100],
+                color:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: hasCustomIcon ? Colors.blue : Colors.grey,
@@ -316,23 +325,26 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                         ),
                       ],
                     ),
-                    child: hasCustomIcon
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              File(_customIconPath!),
-                              fit: BoxFit.cover,
+                    child:
+                        hasCustomIcon
+                            ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                File(_customIconPath!),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                            : Icon(
+                              _typeIcons[_markerType] ?? Icons.location_on,
+                              size: 50,
+                              color: _color,
                             ),
-                          )
-                        : Icon(
-                            _typeIcons[_markerType] ?? Icons.location_on,
-                            size: 50,
-                            color: _color,
-                          ),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    hasCustomIcon ? 'Пользовательская иконка' : 'Стандартная иконка',
+                    hasCustomIcon
+                        ? 'Пользовательская иконка'
+                        : 'Стандартная иконка',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey[600],
@@ -369,15 +381,16 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Colors.blue,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Используется своя иконка. Тип метки не влияет на отображение.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue[700],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                       ),
                     ),
                   ],
@@ -397,7 +410,10 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -459,12 +475,16 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Цвет названия:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Цвет названия:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   GestureDetector(
                     onTap: () async {
                       final newColor = await showDialog<Color>(
                         context: context,
-                        builder: (_) => _ColorPickerDialog(currentColor: _color),
+                        builder:
+                            (_) => _ColorPickerDialog(currentColor: _color),
                       );
                       if (newColor != null) setState(() => _color = newColor);
                     },
@@ -489,18 +509,21 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                   labelText: 'Тип метки',
                   border: OutlineInputBorder(),
                 ),
-                items: _types
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Row(
-                            children: [
-                              Icon(_typeIcons[t], size: 20),
-                              const SizedBox(width: 8),
-                              Text(_typeNames[t] ?? t),
-                            ],
+                items:
+                    _types
+                        .map(
+                          (t) => DropdownMenuItem(
+                            value: t,
+                            child: Row(
+                              children: [
+                                Icon(_typeIcons[t], size: 20),
+                                const SizedBox(width: 8),
+                                Text(_typeNames[t] ?? t),
+                              ],
+                            ),
                           ),
-                        ))
-                    .toList(),
+                        )
+                        .toList(),
                 onChanged: (v) => setState(() => _markerType = v ?? 'location'),
               ),
               const SizedBox(height: 12),
@@ -595,13 +618,20 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
+                  border: Border.all(
+                    color: Colors.grey[400]!,
+                    style: BorderStyle.solid,
+                  ),
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_photo_alternate, size: 32, color: Colors.grey[600]),
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 32,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         'Нет фотографий',
@@ -658,33 +688,35 @@ class _ColorPickerDialog extends StatelessWidget {
       Colors.brown,
       Colors.indigo,
     ];
-    
+
     return AlertDialog(
       title: const Text('Выбери цвет'),
       content: Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: colors.map((c) {
-          final isSelected = c == currentColor;
-          return GestureDetector(
-            onTap: () => Navigator.pop(context, c),
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: c,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? Colors.white : Colors.grey,
-                  width: isSelected ? 4 : 2,
+        children:
+            colors.map((c) {
+              final isSelected = c == currentColor;
+              return GestureDetector(
+                onTap: () => Navigator.pop(context, c),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Colors.white : Colors.grey,
+                      width: isSelected ? 4 : 2,
+                    ),
+                  ),
+                  child:
+                      isSelected
+                          ? const Icon(Icons.check, color: Colors.white)
+                          : null,
                 ),
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, color: Colors.white)
-                  : null,
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }

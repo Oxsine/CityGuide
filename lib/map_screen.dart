@@ -75,7 +75,6 @@ class _MapScreenState extends State<MapScreen> {
         // Обрабатываем и нормализуем кастомную иконку
         final processedBytes = await IconProcessor.createStyledIcon(
           marker.customIconPath!,
-          backgroundColor: Colors.white,
           addShadow: true,
           makeCircular: true,
         );
@@ -688,7 +687,7 @@ class _MapScreenState extends State<MapScreen> {
                     size: 10,
                     color: marker.titleColor,
                     placement: TextStylePlacement.bottom,
-                    offset: 15,
+                    offset: 25,
                   ),
                 ),
                 consumeTapEvents: true,

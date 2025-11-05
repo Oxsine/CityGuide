@@ -12,11 +12,10 @@ class MapMarker {
   int titleColorValue;
   String markerType;
   int createdAt;
-  String? customIconPath; // Добавлено новое поле
+  String? customIconPath; 
 
   Color get titleColor => Color(titleColorValue);
   
-  // Проверка, используется ли кастомная иконка
   bool get hasCustomIcon => customIconPath != null && customIconPath!.isNotEmpty;
 
   MapMarker({
@@ -29,7 +28,7 @@ class MapMarker {
     required this.titleColorValue,
     required this.markerType,
     required this.createdAt,
-    this.customIconPath, // Добавлен в конструктор
+    this.customIconPath, 
   });
 
   factory MapMarker.fromJson(Map<String, dynamic> json) {
@@ -47,11 +46,6 @@ class MapMarker {
     
     if (!validTypes.contains(markerType)) {
       markerType = 'location';
-    }
-
-    List<String> photos = [];
-    if (json['photos'] != null && json['photos'] is List) {
-      photos = (json['photos'] as List).map((e) => e.toString()).toList();
     }
     
     return MapMarker(

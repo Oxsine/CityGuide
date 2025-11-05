@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 import '../map_marker.dart';
 
 class MarkerDetailsSheet extends StatelessWidget {
@@ -24,7 +24,6 @@ ${marker.description.isNotEmpty ? '${marker.description}\n\n' : ''}Коорди�
 Широта: ${marker.latitude.toStringAsFixed(6)}
 Долгота: ${marker.longitude.toStringAsFixed(6)}
 
-Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
 Яндекс Карты: https://yandex.ru/maps/?ll=${marker.longitude},${marker.latitude}&z=16&pt=${marker.longitude},${marker.latitude}
 ''';
 
@@ -42,6 +41,70 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
       ),
     );
   }
+
+  // НОВЫЙ МЕТОД: Открыть в Яндекс Навигаторе
+  Future<void> _openInYandexNavigator(BuildContext context) async {
+    // URL схема для Яндекс Навигатора
+    final yandexNavUrl = Uri.parse(
+      'yandexnavi://build_route_on_map?lat_to=${marker.latitude}&lon_to=${marker.longitude}'
+    );
+
+    try {
+      // Проверяем, установлен ли Яндекс Навигатор
+      if (await canLaunchUrl(yandexNavUrl)) {
+        await launchUrl(yandexNavUrl, mode: LaunchMode.externalApplication);
+      } else {
+        // Если не установлен, открываем веб-версию или маркет
+        if (context.mounted) {
+          final installChoice = await showDialog<String>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Яндекс Навигатор не установлен'),
+              content: const Text('Выберите действие:'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'cancel'),
+                  child: const Text('Отмена'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'web'),
+                  child: const Text('Открыть в браузере'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, 'install'),
+                  child: const Text('Установить'),
+                ),
+              ],
+            ),
+          );
+
+          if (installChoice == 'web') {
+            // Открыть в Яндекс Картах (веб)
+            final webUrl = Uri.parse(
+              'https://yandex.ru/maps/?rtext=~${marker.latitude},${marker.longitude}&rtt=auto'
+            );
+            await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+          } else if (installChoice == 'install') {
+            // Открыть страницу установки в Google Play / App Store
+            final storeUrl = Uri.parse(
+              'https://play.google.com/store/apps/details?id=ru.yandex.yandexnavi'
+            );
+            await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка открытия навигатора: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +144,6 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
               ],
             ),
             const SizedBox(height: 8),
-
             
             if (marker.description.isNotEmpty) ...[
               Text(
@@ -91,7 +153,7 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
               const SizedBox(height: 8),
             ],
             
-            // ✅ Координаты с кнопкой копирования
+            // Координаты с кнопкой копирования
             Row(
               children: [
                 Expanded(
@@ -107,13 +169,29 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
                 ),
               ],
             ),
-
             
-            // ✅ КНОПКИ ДЕЙСТВИЙ
+            Text(
+              'Масштаб: ${marker.scale.toStringAsFixed(1)}x',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            
+            // КНОПКИ ДЕЙСТВИЙ
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
+                // НОВАЯ КНОПКА: Яндекс Навигатор
+                ElevatedButton.icon(
+                  onPressed: () => _openInYandexNavigator(context),
+                  icon: const Icon(Icons.navigation, size: 18),
+                  label: const Text('Навигатор'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.yellow[700],
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+                              
                 ElevatedButton.icon(
                   onPressed: () => _shareMarker(context),
                   icon: const Icon(Icons.share, size: 18),

@@ -124,7 +124,6 @@ class _MapScreenState extends State<MapScreen> {
                 titleColorValue: color.value,
                 markerType: type,
                 createdAt: DateTime.now().millisecondsSinceEpoch,
-                photos: photos,
                 customIconPath: customIconPath,
               );
 
@@ -161,7 +160,6 @@ class _MapScreenState extends State<MapScreen> {
             initialScale: marker.scale,
             initialColor: marker.titleColor,
             initialType: marker.markerType,
-            initialPhotos: marker.photos,
             initialCustomIconPath: marker.customIconPath,
             onSave: (
               title,
@@ -186,7 +184,6 @@ class _MapScreenState extends State<MapScreen> {
                   titleColorValue: color.value,
                   markerType: type,
                   createdAt: marker.createdAt,
-                  photos: photos,
                   customIconPath: customIconPath,
                 );
 

@@ -81,47 +81,7 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
               ],
             ),
             const SizedBox(height: 8),
-            
-            // Галерея фотографий
-            if (marker.photos.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 150,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: marker.photos.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => Dialog(
-                            child: InteractiveViewer(
-                              child: Image.file(
-                                File(marker.photos[index]),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 150,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: FileImage(File(marker.photos[index])),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+
             
             if (marker.description.isNotEmpty) ...[
               Text(
@@ -147,17 +107,7 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
                 ),
               ],
             ),
-            
-            Text(
-              'Масштаб: ${marker.scale.toStringAsFixed(1)}x',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (marker.photos.isNotEmpty)
-              Text(
-                'Фотографий: ${marker.photos.length}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            const SizedBox(height: 16),
+
             
             // ✅ КНОПКИ ДЕЙСТВИЙ
             Wrap(

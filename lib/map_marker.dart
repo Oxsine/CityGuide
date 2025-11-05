@@ -12,7 +12,6 @@ class MapMarker {
   int titleColorValue;
   String markerType;
   int createdAt;
-  List<String> photos;
   String? customIconPath; // Добавлено новое поле
 
   Color get titleColor => Color(titleColorValue);
@@ -30,7 +29,6 @@ class MapMarker {
     required this.titleColorValue,
     required this.markerType,
     required this.createdAt,
-    this.photos = const [],
     this.customIconPath, // Добавлен в конструктор
   });
 
@@ -72,7 +70,6 @@ class MapMarker {
       createdAt: json['createdAt'] is int
           ? json['createdAt'] as int
           : DateTime.now().millisecondsSinceEpoch,
-      photos: photos,
       customIconPath: json['customIconPath']?.toString(), // Загрузка из JSON
     );
   }
@@ -88,7 +85,6 @@ class MapMarker {
       'titleColorValue': titleColorValue,
       'markerType': markerType,
       'createdAt': createdAt,
-      'photos': photos,
       if (customIconPath != null) 'customIconPath': customIconPath, // Сохранение в JSON
     };
   }

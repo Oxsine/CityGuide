@@ -153,91 +153,6 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
     );
   }
 
-  /// Добавить фото из галереи
-  Future<void> _pickImage() async {
-    try {
-      final String? pickedPath = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PhotoPickerScreen()),
-      );
-      if (pickedPath != null) {
-        final String permanentPath = await photoStorage.savePhoto(pickedPath);
-        setState(() {
-          _photoPaths.add(permanentPath);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка выбора фото: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  /// Сделать фото камерой
-  Future<void> _takePhoto() async {
-    try {
-      final String? pickedPath = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PhotoPickerScreen()),
-      );
-      if (pickedPath != null) {
-        final String permanentPath = await photoStorage.savePhoto(pickedPath);
-        setState(() {
-          _photoPaths.add(permanentPath);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка камеры: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  /// Удалить фото
-  void _removePhoto(int index) {
-    setState(() {
-      _photoPaths.removeAt(index);
-    });
-  }
-
-  /// Просмотр фото
-  void _viewPhoto(String path) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            child: Stack(
-              children: [
-                Center(
-                  child: InteractiveViewer(
-                    child: Image.file(File(path), fit: BoxFit.contain),
-                  ),
-                ),
-                Positioned(
-                  top: 40,
-                  right: 20,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final hasCustomIcon = _customIconPath != null;
@@ -432,9 +347,9 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               children: [
                 Expanded(
                   child: Slider(
-                    min: 0.3,
+                    min: 0.1,
                     max: 1.5,
-                    divisions: 12,
+                    divisions: 15,
                     label: '${(_scale * 100).toInt()}%',
                     value: _scale,
                     onChanged: (v) => setState(() => _scale = v),
@@ -528,119 +443,6 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               ),
               const SizedBox(height: 12),
             ],
-
-            // Фотографии
-            const Divider(),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Фотографии (${_photoPaths.length})',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.camera_alt),
-                      onPressed: _takePhoto,
-                      tooltip: 'Сделать фото',
-                      color: Theme.of(context).primaryColor,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.photo_library),
-                      onPressed: _pickImage,
-                      tooltip: 'Выбрать из галереи',
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            if (_photoPaths.isNotEmpty)
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _photoPaths.length,
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _viewPhoto(_photoPaths[index]),
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                              image: DecorationImage(
-                                image: FileImage(File(_photoPaths[index])),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 12,
-                          child: GestureDetector(
-                            onTap: () => _removePhoto(index),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-
-            if (_photoPaths.isEmpty)
-              Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.grey[400]!,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate,
-                        size: 32,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Нет фотографий',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
           ],
         ),
       ),

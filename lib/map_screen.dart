@@ -24,7 +24,7 @@ class _MapScreenState extends State<MapScreen> {
   YandexMapController? _mapController;
   Map<String, BitmapDescriptor> _iconCache = {}; // Кэш иконок
   PlacemarkMapObject? _userLocationPlacemark;
-  Position? _userPosition;
+  BitmapDescriptor? _userLocationIcon;
 
   static const Point _moscowCenter = Point(
     latitude: 55.751244,
@@ -35,6 +35,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _loadMarkers();
+    _loadUserLocationIcon();
   }
 
   Future<void> _loadMarkers() async {
@@ -43,6 +44,16 @@ class _MapScreenState extends State<MapScreen> {
     await _preloadIcons();
     setState(() {});
     print('Загружено ${markers.length} меток');
+  }
+
+  Future<void> _loadUserLocationIcon() async {
+    try {
+      _userLocationIcon = await BitmapDescriptor.fromAssetImage(
+        'assets/icons/user_location.png',
+      );
+    } catch (e) {
+      print('Ошибка загрузки иконки местоположения: $e');
+    }
   }
 
   // Предзагрузка всех иконок в кэш
@@ -64,7 +75,6 @@ class _MapScreenState extends State<MapScreen> {
         // Обрабатываем и нормализуем кастомную иконку
         final processedBytes = await IconProcessor.createStyledIcon(
           marker.customIconPath!,
-          backgroundColor: Colors.white,
           addShadow: true,
           makeCircular: true,
         );
@@ -113,7 +123,6 @@ class _MapScreenState extends State<MapScreen> {
                 titleColorValue: color.value,
                 markerType: type,
                 createdAt: DateTime.now().millisecondsSinceEpoch,
-                photos: photos,
                 customIconPath: customIconPath,
               );
 
@@ -150,7 +159,6 @@ class _MapScreenState extends State<MapScreen> {
             initialScale: marker.scale,
             initialColor: marker.titleColor,
             initialType: marker.markerType,
-            initialPhotos: marker.photos,
             initialCustomIconPath: marker.customIconPath,
             onSave: (
               title,
@@ -175,7 +183,6 @@ class _MapScreenState extends State<MapScreen> {
                   titleColorValue: color.value,
                   markerType: type,
                   createdAt: marker.createdAt,
-                  photos: photos,
                   customIconPath: customIconPath,
                 );
 
@@ -585,21 +592,45 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
+      final userLocation = Point(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+
       await _mapController!.moveCamera(
         CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: Point(
-              latitude: position.latitude,
-              longitude: position.longitude,
-            ),
-            zoom: 16.0,
-          ),
+          CameraPosition(target: userLocation, zoom: 16.0),
         ),
         animation: const MapAnimation(
           type: MapAnimationType.smooth,
           duration: 1.0,
         ),
       );
+
+      // Обновляем или создаем маркер местоположения пользователя
+      setState(() {
+        if (_userLocationPlacemark == null) {
+          _userLocationPlacemark = PlacemarkMapObject(
+            mapId: const MapObjectId('user_location'),
+            point: userLocation,
+            opacity: 1.0,
+            icon: PlacemarkIcon.single(
+              PlacemarkIconStyle(
+                image:
+                    _userLocationIcon ??
+                    BitmapDescriptor.fromAssetImage(
+                      'assets/icons/user_location.png',
+                    ),
+                scale: 0.2,
+              ),
+            ),
+          );
+        } else {
+          _userLocationPlacemark = _userLocationPlacemark!.copyWith(
+            point: userLocation,
+          );
+        }
+      });
 
       print('Местоположение: ${position.latitude}, ${position.longitude}');
       print('Точность: ${position.accuracy} метров');
@@ -721,7 +752,7 @@ class _MapScreenState extends State<MapScreen> {
                     size: 10,
                     color: marker.titleColor,
                     placement: TextStylePlacement.bottom,
-                    offset: 15,
+                    offset: 25,
                   ),
                 ),
                 consumeTapEvents: true,

@@ -250,11 +250,6 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
                             'Тип: ${_getTypeName(marker.markerType)}',
                             style: const TextStyle(fontSize: 12),
                           ),
-                          if (marker.photos.isNotEmpty)
-                            Text(
-                              '📷 Фото: ${marker.photos.length}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
                         ],
                       ),
                       

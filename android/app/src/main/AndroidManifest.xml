@@ -40,6 +40,11 @@
     </application>
     
     <queries>
+        <!-- Яндекс Навигатор -->
+        <package android:name="ru.yandex.yandexnavi" />
+        <!-- Google Maps -->
+        <package android:name="com.google.android.apps.maps" />
+
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

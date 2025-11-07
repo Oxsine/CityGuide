@@ -333,9 +333,9 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
               children: [
                 Expanded(
                   child: Slider(
-                    min: 0.3,
+                    min: 0.1,
                     max: 1.5,
-                    divisions: 12,
+                    divisions: 15,
                     label: '${(_scale * 100).toInt()}%',
                     value: _scale,
                     onChanged: (v) => setState(() => _scale = v),

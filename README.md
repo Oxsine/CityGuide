@@ -21,8 +21,9 @@
 ### Работа с метками:
 - ✅ Создание меток на карте (нажатие/долгое нажатие)
 - ✅ Редактирование и удаление меток
-- ✅ Добавление фотографий (камера/галерея)
 - ✅ Кастомизация (цвет, иконка, масштаб)
+- ✅ Пользовательские иконки для меток
+- ✅ Автоматическая обработка иконок (круглая форма, тень)
 - ✅ 7 типов меток (Дом, Работа, Еда, Развлечение, Локация, Учеба, Разное)
 
 ### Навигация и поиск:
@@ -33,8 +34,10 @@
 
 ### Интеграция с картами:
 - ✅ Yandex MapKit интеграция
+- ✅ Определение местоположения пользователя
 - ✅ Управление картой (поворот на север, местоположение)
 - ✅ Отображение меток с подписями
+- ✅ Кэширование иконок для оптимизации производительности
 
 ### Дополнительно:
 - ✅ Темная тема
@@ -57,6 +60,8 @@
 - `shared_preferences` - Локальное хранилище настроек
 - `path_provider` - Работа с файловой системой
 - `image_picker` - Работа с камерой и галереей
+- `image` - Обработка изображений
+- `geolocator` - Определение геопозиции
 - `share_plus` - Функционал "Поделиться"
 - `url_launcher` - Открытие внешних приложений
 
@@ -90,16 +95,19 @@ flutter pub get
 
 1. Получите API ключ на [https://developer.tech.yandex.ru/](https://developer.tech.yandex.ru/)
 
-2. Добавьте ключ в `android/app/src/main/AndroidManifest.xml`:
-```xml
-<meta-data
-    android:name="com.yandex.mapkit.ApiKey"
-    android:value="ВАШ_API_КЛЮЧ"/>
-```
+2. Добавьте ключ в `android/app/src/main/kotlin/com/example/city_navigation/MainActivity.kt`:
+```kotlin
+package com.example.city_navigation
 
-3. Для iOS добавьте в `ios/Runner/AppDelegate.swift`:
-```swift
-YMKMapKit.setApiKey("ВАШ_API_КЛЮЧ")
+import io.flutter.embedding.android.FlutterActivity
+import com.yandex.mapkit.MapKitFactory
+
+class MainActivity: FlutterActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        MapKitFactory.setApiKey("ВАШ_API_КЛЮЧ")
+    }
+}
 ```
 
 ### Шаг 4: Запуск приложения
@@ -107,14 +115,9 @@ YMKMapKit.setApiKey("ВАШ_API_КЛЮЧ")
 # Для Android
 flutter run
 
-# Для iOS
-flutter run -d ios
-
 # Для release сборки
 flutter build apk --release
 ```
-
----
 
 ## 📁 Структура проекта
 ```
@@ -124,14 +127,16 @@ lib/
 ├── settings_screen.dart         # Экран настроек
 ├── map_marker.dart              # Модель данных метки
 ├── storage.dart                 # Работа с локальным хранилищем
+├── photo_storage.dart           # Работа с фотографиями (устарел)
 ├── theme_provider.dart          # Управление темой приложения
+├── icon_processor.dart          # Обработка пользовательских иконок
 └── widgets/                     # UI компоненты
     ├── add_marker_dialog.dart   # Диалог создания/редактирования метки
     ├── marker_details_sheet.dart # Детали метки
     ├── markers_list_sheet.dart  # Список всех меток
-    └── map_controls.dart        # Кнопки управления картой
+    ├── map_controls.dart        # Кнопки управления картой
+    └── photo_picker_screen.dart # Выбор фотографий (устарел)
 ```
-
 ---
 
 ## 📊 Архитектура
@@ -191,8 +196,6 @@ lib/
 - [ ] Статистика использования
 - [ ] Геозоны и уведомления
 - [ ] Синхронизация через облако
-- [ ] Маршруты между метками
-- [ ] Offline режим карты
 - [ ] Виджет на главный экран
 
 ---

@@ -108,7 +108,6 @@ class Storage {
       final markers = await loadMarkers();
       final markerIndex = markers.indexWhere((m) => m.id == markerId);
       if (markerIndex != -1) {
-        await deletePhotos(markers[markerIndex].photos);
         markers.removeAt(markerIndex);
       }
       return await saveMarkers(markers);
@@ -159,19 +158,5 @@ class Storage {
   Future<int> getMarkersCount() async {
     final markers = await loadMarkers();
     return markers.length;
-  }
-
-  /// Удалить список фото-файлов
-  Future<void> deletePhotos(List<String> photoPaths) async {
-    for (final path in photoPaths) {
-      try {
-        final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (e) {
-        print('Ошибка удаления фото $path: $e');
-      }
-    }
   }
 }

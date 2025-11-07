@@ -256,7 +256,7 @@ Google Maps: https://maps.google.com/?q=${marker.latitude},${marker.longitude}
                       isThreeLine: true,
                       onTap: () => widget.onMarkerTap(marker),
                       
-                      // ✅ МЕНЮ ДЕЙСТВИЙ
+                      // Меню действий
                       trailing: PopupMenuButton<String>(
                         onSelected: (value) {
                           switch (value) {

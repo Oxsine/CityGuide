@@ -53,7 +53,6 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
   String _markerType = 'location';
   List<String> _photoPaths = [];
   String? _customIconPath;
-  // final ImagePicker _picker = ImagePicker();
 
   final List<String> _types = [
     'location',
@@ -316,7 +315,7 @@ class _AddMarkerDialogState extends State<AddMarkerDialog> {
             const Divider(),
             const SizedBox(height: 8),
 
-            // Масштаб иконки (УЛУЧШЕНО)
+            // Масштаб иконки
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

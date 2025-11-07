@@ -84,13 +84,7 @@ ${marker.description.isNotEmpty ? '${marker.description}\n\n' : ''}Коорди�
               'https://yandex.ru/maps/?rtext=~${marker.latitude},${marker.longitude}&rtt=auto'
             );
             await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-          } else if (installChoice == 'install') {
-            // Открыть страницу установки в Google Play / App Store
-            final storeUrl = Uri.parse(
-              'https://play.google.com/store/apps/details?id=ru.yandex.yandexnavi'
-            );
-            await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
-          }
+          } 
         }
       }
     } catch (e) {

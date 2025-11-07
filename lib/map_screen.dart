@@ -25,7 +25,8 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, BitmapDescriptor> _iconCache = {}; // Кэш иконок
   PlacemarkMapObject? _userLocationPlacemark;
   BitmapDescriptor? _userLocationIcon;
-
+  Position? _userPosition;
+  
   static const Point _moscowCenter = Point(
     latitude: 55.751244,
     longitude: 37.618423,
